@@ -2,9 +2,9 @@ name: KD LIST BOT
 
 on:
   workflow_dispatch:
-  schedule: # 確保與 workflow_dispatch 對齊
-    # 台灣時間 10:10 執行（週一至週五） -> 換算 UTC 為 02:10
-    - cron: '10 2 * * 1-5'
+  schedule: # 修正了這裡的縮排，使其與 workflow_dispatch 對齊
+    # 每 10 分鐘執行一次
+    - cron: '*/10 * * * *'
 
 jobs:
   run:
