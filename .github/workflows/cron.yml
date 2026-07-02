@@ -1,6 +1,8 @@
 # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events
 name: Cron
 on:
+  workflow_dispatch:
+
   schedule:
     - cron: "*/5 * * * *"
 
