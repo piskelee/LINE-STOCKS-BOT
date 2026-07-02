@@ -1,0 +1,20 @@
+name: Schedule Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"  # 每 5 分鐘（UTC時間）
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show time
+        run: |
+          echo "=== GitHub Actions Triggered ==="
+          echo "UTC time: $(date -u)"
+          echo "Local time (runner): $(date)"
