@@ -1,0 +1,13 @@
+name: Hourly Automated Task
+on:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  execute-task:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run hourly job
+        run: echo "This task runs every hour successfully!"
