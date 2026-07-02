@@ -1,0 +1,26 @@
+name: KD LIST BOT
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 台灣時間 08:32執行（週一至週五）
+    - cron: '10 2 * * 1-5'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt -q
+
+      - name: Run Bot
+        run: python main.py
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
