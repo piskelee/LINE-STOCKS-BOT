@@ -28,15 +28,11 @@ def send_line(msg):
         "messages": [{"type": "text", "text": msg[:4900]}]
     }
 
-    try:
-        r = requests.post(url, headers=headers, json=data)
-        print("LINE STATUS:", r.status_code)
-    except Exception as e:
-        print("LINE ERROR:", e)
+    requests.post(url, headers=headers, json=data)
 
 
 # =========================
-# KD 計算
+# KD
 # =========================
 def calc_kd(df, n=9):
 
@@ -52,98 +48,119 @@ def calc_kd(df, n=9):
 
 
 # =========================
-# 安全取值
+# 均線
 # =========================
-def safe_last(series):
+def calc_ma(df):
 
-    arr = np.array(series.dropna().values).flatten()
+    ma20 = df["Close"].rolling(20).mean()
+    ma60 = df["Close"].rolling(60).mean()
 
-    if len(arr) < 2:
-        return None, None
-
-    return float(arr[-1]), float(arr[-2])
+    return ma20, ma60
 
 
 # =========================
-# 市場狀態（核心新增）
+# KD 狀態升級
 # =========================
-def market_state(k):
+def kd_state(k):
 
-    if k <= 20:
-        return "🔵 超跌（可能反彈）"
-    elif k <= 35:
-        return "🟢 低檔（重點區）"
-    elif k <= 80:
-        return "🟡 盤整（觀望）"
+    if k < 20:
+        return "🔥 極度超跌（強反彈候選）"
+    elif k < 35:
+        return "🟢 低檔佈局區"
+    elif k < 60:
+        return "🟡 中性盤整"
+    elif k < 80:
+        return "🟠 高檔風險"
     else:
-        return "🔴 過熱（注意回檔）"
+        return "🔴 極度過熱"
 
 
 # =========================
-# 讀 LIST
+# 趨勢判斷
+# =========================
+def trend_state(ma20, ma60):
+
+    if ma20 > ma60:
+        return "📈 多頭趨勢"
+    else:
+        return "📉 空頭趨勢"
+
+
+# =========================
+# 讀股票
 # =========================
 def load_list():
-
-    for name in ["list.txt"]:
-
-        try:
-            with open(name, "r", encoding="utf-8") as f:
-                lines = f.read().splitlines()
-
-            return [x.strip() for x in lines if x.strip()]
-
-        except FileNotFoundError:
-            continue
-
-    return ["0050.TW"]
+    try:
+        with open("list.txt", "r", encoding="utf-8") as f:
+            return [x.strip() for x in f if x.strip()]
+    except:
+        return ["0050.TW"]
 
 
 # =========================
-# 分析單檔
+# 單檔分析（核心🔥）
 # =========================
 def analyze(symbol):
 
-    df = yf.download(symbol, period="3mo", interval="1d", progress=False)
+    df = yf.download(symbol, period="6mo", interval="1d", progress=False)
 
     if df is None or df.empty:
-        return f"⚠️ {symbol} 無資料\n"
+        return None
 
     k, d = calc_kd(df)
+    ma20, ma60 = calc_ma(df)
 
-    k_now, k_prev = safe_last(k)
-    d_now, d_prev = safe_last(d)
+    k_now = float(k.iloc[-1])
+    d_now = float(d.iloc[-1])
 
-    if None in [k_now, k_prev, d_now, d_prev]:
-        return f"⚠️ {symbol} KD不足\n"
+    ma20_now = float(ma20.iloc[-1])
+    ma60_now = float(ma60.iloc[-1])
 
-    state = market_state(k_now)
+    close = float(df["Close"].iloc[-1])
+    last_date = df.index[-1].strftime("%Y-%m-%d")
 
-    msg = f"""📊 {symbol}
+    # KD狀態 + 趨勢
+    kd_txt = kd_state(k_now)
+    trend_txt = trend_state(ma20_now, ma60_now)
 
+    # KD交叉
+    cross = ""
+    if k.iloc[-2] < d.iloc[-2] and k_now > d_now:
+        cross = "🟢 黃金交叉"
+    elif k.iloc[-2] > d.iloc[-2] and k_now < d_now:
+        cross = "🔴 死亡交叉"
+
+    # 🔥 分數（排序用）
+    score = 0
+
+    if k_now < 20:
+        score += 3
+    elif k_now < 35:
+        score += 2
+
+    if ma20_now > ma60_now:
+        score += 2
+
+    if cross == "🟢 黃金交叉":
+        score += 3
+
+    return {
+        "symbol": symbol,
+        "msg": f"""📊 {symbol}
+🗓 {last_date}
+
+💰 收盤：{close:.2f}
 K：{k_now:.2f}
 D：{d_now:.2f}
-狀態：{state}
-"""
 
-    # 🟢 黃金交叉
-    if k_prev < d_prev and k_now > d_now:
-        msg = f"""🟢 {symbol} 黃金交叉！
+{kd_txt}
+{trend_txt}
+{cross}
 
-K：{k_now:.2f}
-D：{d_now:.2f}
-狀態：{state}
-"""
-
-    # 🔴 死亡交叉
-    elif k_prev > d_prev and k_now < d_now:
-        msg = f"""🔴 {symbol} 死亡交叉！
-
-K：{k_now:.2f}
-D：{d_now:.2f}
-狀態：{state}
-"""
-
-    return msg + "\n"
+⭐ 分數：{score}
+""",
+        "score": score
+    }
 
 
 # =========================
@@ -151,19 +168,24 @@ D：{d_now:.2f}
 # =========================
 def main():
 
-    print("🚀 START BOT")
-
     symbols = load_list()
 
-    all_msg = "📈 KD 市場狀態報告\n\n"
+    results = []
 
     for s in symbols:
-        print("processing:", s)
-        all_msg += analyze(s)
+        r = analyze(s)
+        if r:
+            results.append(r)
 
-    send_line(all_msg)
+    # 🔥 排序（最重要）
+    results.sort(key=lambda x: x["score"], reverse=True)
 
-    print("DONE")
+    msg = "📈 KD 策略掃描報告\n\n"
+
+    for r in results:
+        msg += r["msg"] + "\n----------------\n"
+
+    send_line(msg)
 
 
 if __name__ == "__main__":
