@@ -28,11 +28,15 @@ def send_line(msg):
         "messages": [{"type": "text", "text": msg[:4900]}]
     }
 
-    requests.post(url, headers=headers, json=data)
+    try:
+        r = requests.post(url, headers=headers, json=data)
+        print("LINE STATUS:", r.status_code)
+    except Exception as e:
+        print("LINE ERROR:", e)
 
 
 # =========================
-# KD
+# KD 計算
 # =========================
 def calc_kd(df, n=9):
 
@@ -59,31 +63,31 @@ def calc_ma(df):
 
 
 # =========================
-# KD 狀態升級
+# KD 狀態
 # =========================
 def kd_state(k):
 
     if k < 20:
-        return "🔥 極度超跌（強反彈候選）"
+        return "🔥 極度超跌（反彈候選）"
     elif k < 35:
-        return "🟢 低檔佈局區"
+        return "🟢 低檔區"
     elif k < 60:
-        return "🟡 中性盤整"
+        return "🟡 中性"
     elif k < 80:
-        return "🟠 高檔風險"
+        return "🟠 高檔"
     else:
-        return "🔴 極度過熱"
+        return "🔴 過熱"
 
 
 # =========================
-# 趨勢判斷
+# 趨勢
 # =========================
 def trend_state(ma20, ma60):
 
     if ma20 > ma60:
-        return "📈 多頭趨勢"
+        return "📈 多頭"
     else:
-        return "📉 空頭趨勢"
+        return "📉 空頭"
 
 
 # =========================
@@ -98,7 +102,7 @@ def load_list():
 
 
 # =========================
-# 單檔分析（核心🔥）
+# 單檔分析（已修正🔥）
 # =========================
 def analyze(symbol):
 
@@ -110,27 +114,38 @@ def analyze(symbol):
     k, d = calc_kd(df)
     ma20, ma60 = calc_ma(df)
 
-    k_now = float(k.iloc[-1])
-    d_now = float(d.iloc[-1])
+    # ===== 安全轉 numpy（避免 Series bug）=====
+    k = k.dropna().values
+    d = d.dropna().values
+    ma20 = ma20.dropna().values
+    ma60 = ma60.dropna().values
 
-    ma20_now = float(ma20.iloc[-1])
-    ma60_now = float(ma60.iloc[-1])
+    if len(k) < 2 or len(d) < 2:
+        return None
 
-    close = float(df["Close"].iloc[-1])
+    k_now = k[-1]
+    d_now = d[-1]
+    k_prev = k[-2]
+    d_prev = d[-2]
+
+    ma20_now = ma20[-1]
+    ma60_now = ma60[-1]
+
+    close = df["Close"].iloc[-1].item()
     last_date = df.index[-1].strftime("%Y-%m-%d")
 
-    # KD狀態 + 趨勢
+    # ===== 狀態 =====
     kd_txt = kd_state(k_now)
     trend_txt = trend_state(ma20_now, ma60_now)
 
-    # KD交叉
+    # ===== 交叉 =====
     cross = ""
-    if k.iloc[-2] < d.iloc[-2] and k_now > d_now:
+    if k_prev < d_prev and k_now > d_now:
         cross = "🟢 黃金交叉"
-    elif k.iloc[-2] > d.iloc[-2] and k_now < d_now:
+    elif k_prev > d_prev and k_now < d_now:
         cross = "🔴 死亡交叉"
 
-    # 🔥 分數（排序用）
+    # ===== 分數 =====
     score = 0
 
     if k_now < 20:
@@ -144,9 +159,7 @@ def analyze(symbol):
     if cross == "🟢 黃金交叉":
         score += 3
 
-    return {
-        "symbol": symbol,
-        "msg": f"""📊 {symbol}
+    msg = f"""📊 {symbol}
 🗓 {last_date}
 
 💰 收盤：{close:.2f}
@@ -158,7 +171,11 @@ D：{d_now:.2f}
 {cross}
 
 ⭐ 分數：{score}
-""",
+"""
+
+    return {
+        "symbol": symbol,
+        "msg": msg,
         "score": score
     }
 
@@ -177,7 +194,7 @@ def main():
         if r:
             results.append(r)
 
-    # 🔥 排序（最重要）
+    # 排序
     results.sort(key=lambda x: x["score"], reverse=True)
 
     msg = "📈 KD 策略掃描報告\n\n"
@@ -186,6 +203,8 @@ def main():
         msg += r["msg"] + "\n----------------\n"
 
     send_line(msg)
+
+    print("DONE")
 
 
 if __name__ == "__main__":
