@@ -13,7 +13,7 @@ def send_line(msg):
     user_id = os.environ.get("LINE_USER_ID")
 
     if not token or not user_id:
-        print("❌ Missing LINE env")
+        print("Missing LINE env")
         return
 
     url = "https://api.line.me/v2/bot/message/push"
@@ -73,35 +73,35 @@ def load_list():
 
 
 # =========================
-# 安全取 float（核心🔥）
+# 安全 float
 # =========================
 def f(v):
     return float(np.array(v).reshape(-1)[-1])
 
 
 # =========================
-# KD 狀態
+# KD 狀態（純文字）
 # =========================
 def kd_state(k):
 
     if k < 20:
-        return "🔥 極度超跌"
+        return "極度超跌"
     elif k < 35:
-        return "🟢 低檔"
+        return "低檔"
     elif k < 60:
-        return "🟡 中性"
+        return "中性"
     elif k < 80:
-        return "🟠 高檔"
+        return "高檔"
     else:
-        return "🔴 過熱"
+        return "過熱"
 
 
 # =========================
-# 趨勢
+# 趨勢（純文字）
 # =========================
 def trend_state(ma20, ma60):
 
-    return "📈 多頭" if ma20 > ma60 else "📉 空頭"
+    return "多頭" if ma20 > ma60 else "空頭"
 
 
 # =========================
@@ -117,7 +117,6 @@ def analyze(symbol):
     k, d = calc_kd(df)
     ma20, ma60 = calc_ma(df)
 
-    # ===== 全部強制轉 float（避免 crash）=====
     k = k.dropna().values
     d = d.dropna().values
     ma20 = ma20.dropna().values
@@ -136,21 +135,17 @@ def analyze(symbol):
     ma60_now = f(ma60[-1])
 
     close = f(df["Close"].iloc[-1])
-
     last_date = df.index[-1].strftime("%Y-%m-%d")
 
-    # ===== 狀態 =====
     kd_txt = kd_state(k_now)
     trend_txt = trend_state(ma20_now, ma60_now)
 
-    # ===== 交叉 =====
     cross = ""
     if k_prev < d_prev and k_now > d_now:
-        cross = "🟢 黃金交叉"
+        cross = "黃金交叉"
     elif k_prev > d_prev and k_now < d_now:
-        cross = "🔴 死亡交叉"
+        cross = "死亡交叉"
 
-    # ===== 分數 =====
     score = 0
 
     if k_now < 20:
@@ -161,19 +156,19 @@ def analyze(symbol):
     if ma20_now > ma60_now:
         score += 2
 
-    if cross == "🟢 黃金交叉":
+    if cross == "黃金交叉":
         score += 3
 
     msg = (
-        f"📊 {symbol}\n"
-        f"🗓 {last_date}\n\n"
-        f"💰 收盤：{close:.2f}\n"
-        f"K：{k_now:.2f}\n"
-        f"D：{d_now:.2f}\n\n"
+        f"{symbol}\n"
+        f"{last_date}\n\n"
+        f"收盤 {close:.2f}\n"
+        f"K {k_now:.2f}\n"
+        f"D {d_now:.2f}\n\n"
         f"{kd_txt}\n"
         f"{trend_txt}\n"
         f"{cross}\n\n"
-        f"⭐ 分數：{score}\n"
+        f"分數 {score}\n"
     )
 
     return {"msg": msg, "score": score}
@@ -194,7 +189,7 @@ def main():
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    msg = "📈 KD 策略掃描報告\n\n"
+    msg = "KD策略掃描報告\n\n"
 
     for r in results:
         msg += r["msg"] + "\n----------------\n"
