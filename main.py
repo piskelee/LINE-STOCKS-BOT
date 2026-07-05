@@ -160,15 +160,19 @@ def analyze(symbol):
         score += 3
 
     msg = (
-        f"{symbol}\n"
-        f"{last_date}\n\n"
-        f"收盤 {close:.2f}\n"
-        f"K {k_now:.2f}\n"
-        f"D {d_now:.2f}\n\n"
-        f"{kd_txt}\n"
-        f"{trend_txt}\n"
-        f"{cross}\n\n"
-        f"分數 {score}\n"
+        f"🏷️ {symbol}\n"
+        f"📅 {last_date}\n\n"
+        f"💰 收盤價：{close:.2f}\n\n"
+        f"📈 KD 指標\n"
+        f"K：{k_now:.2f}\n"
+        f"D：{d_now:.2f}\n"
+        f"狀態：{kd_txt}\n"
+        f"訊號：{cross if cross else '—'}\n\n"
+        f"📊 趨勢\n"
+        f"MA20：{ma20_now:.2f}\n"
+        f"MA60：{ma60_now:.2f}\n"
+        f"方向：{trend_txt}\n\n"
+        f"⭐ 評分：{score} / 10\n"
     )
 
     return {"msg": msg, "score": score}
