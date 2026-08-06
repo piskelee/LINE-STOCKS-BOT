@@ -1,16 +1,20 @@
-from FinMind.data import DataLoader
-import requests
 import os
+import time
 from datetime import datetime, timedelta
 
+import requests
+import pandas as pd
+
+from FinMind.data import DataLoader
 from line_flex import create_flex
 
 
 # =========================
-# LINE 推播
+# LINE PUSH
 # =========================
 
 def send_line_flex(flex):
+
     token = os.environ.get(
         "LINE_CHANNEL_ACCESS_TOKEN"
     )
@@ -19,11 +23,16 @@ def send_line_flex(flex):
         "LINE_USER_ID"
     )
 
+
     if not token or not user_id:
         print("Missing LINE env")
         return
 
-    url = "https://api.line.me/v2/bot/message/push"
+
+    url = (
+        "https://api.line.me/v2/bot/message/push"
+    )
+
 
     headers = {
 
@@ -35,36 +44,40 @@ def send_line_flex(flex):
 
     }
 
+
     data = {
 
         "to": user_id,
 
-        "messages": [
+        "messages":[
             flex
         ]
 
     }
 
+
     try:
 
         r = requests.post(
-
             url,
-
             headers=headers,
-
-            json=data
-
+            json=data,
+            timeout=10
         )
 
         print(
+            "LINE:",
             r.text
         )
 
 
     except Exception as e:
 
-        print(e)
+        print(
+            "LINE ERROR:",
+            e
+        )
+
 
 
 # =========================
@@ -74,16 +87,20 @@ def send_line_flex(flex):
 api = DataLoader()
 
 
+
 # =========================
-# KD
+# KD 標準算法
 # =========================
 
 def calc_kd(df, n=9):
+
+
     low = (
         df["min"]
         .rolling(n)
         .min()
     )
+
 
     high = (
         df["max"]
@@ -91,27 +108,83 @@ def calc_kd(df, n=9):
         .max()
     )
 
+
     rsv = (
 
-            (df["close"] - low)
+        (df["close"] - low)
 
-            /
+        /
 
-            (high - low)
+        (high - low)
 
-            * 100
+        *
+
+        100
 
     )
 
-    k = rsv.ewm(
-        com=2
-    ).mean()
 
-    d = k.ewm(
-        com=2
-    ).mean()
+    k_list = []
+    d_list = []
 
-    return k, d
+
+    k = 50
+    d = 50
+
+
+    for value in rsv:
+
+
+        if pd.isna(value):
+
+            k_list.append(None)
+            d_list.append(None)
+
+            continue
+
+
+
+        k = (
+
+            k * 2 / 3
+
+            +
+
+            value / 3
+
+        )
+
+
+        d = (
+
+            d * 2 / 3
+
+            +
+
+            k / 3
+
+        )
+
+
+        k_list.append(k)
+        d_list.append(d)
+
+
+
+    return (
+
+        pd.Series(
+            k_list,
+            index=df.index
+        ),
+
+        pd.Series(
+            d_list,
+            index=df.index
+        )
+
+    )
+
 
 
 # =========================
@@ -119,19 +192,63 @@ def calc_kd(df, n=9):
 # =========================
 
 def calc_ma(df):
+
+
     ma20 = (
+
         df["close"]
         .rolling(20)
         .mean()
+
     )
 
+
     ma60 = (
+
         df["close"]
         .rolling(60)
         .mean()
+
     )
 
+
     return ma20, ma60
+
+
+
+
+# =========================
+# Volume
+# =========================
+
+def volume_signal(df):
+
+
+    if len(df) < 20:
+
+        return False
+
+
+
+    vol20 = (
+
+        df["Trading_Volume"]
+        .rolling(20)
+        .mean()
+
+    )
+
+
+    return (
+
+        df["Trading_Volume"].iloc[-1]
+
+        >
+
+        vol20.iloc[-1]
+
+    )
+
 
 
 # =========================
@@ -139,12 +256,16 @@ def calc_ma(df):
 # =========================
 
 def load_list():
+
+
     try:
 
+
         with open(
-                "list.txt",
-                encoding="utf-8"
+            "list.txt",
+            encoding="utf-8"
         ) as f:
+
 
             return [
 
@@ -159,6 +280,7 @@ def load_list():
 
     except:
 
+
         return [
 
             "0050"
@@ -166,14 +288,17 @@ def load_list():
         ]
 
 
+
 # =========================
-# KD狀態
+# KD 狀態
 # =========================
 
 def kd_state(k):
+
+
     if k < 20:
 
-        return "極度超跌"
+        return "超跌"
 
 
     elif k < 35:
@@ -196,33 +321,46 @@ def kd_state(k):
         return "過熱"
 
 
+
+
 # =========================
-# 趨勢
+# Trend
 # =========================
 
-def trend_state(ma20, ma60):
+def trend_state(
+        ma20,
+        ma60
+):
+
+
     if ma20 > ma60:
+
         return "多頭"
+
 
     return "空頭"
 
 
+
+
 # =========================
-# 5分制
+# Score
 # =========================
 
 def score_signal(score):
-    if score == 5:
-
-        return "🟢強力買進"
 
 
-    elif score == 4:
+    if score >= 4:
 
-        return "🟡買進觀察"
+        return "🟢買進"
 
 
-    elif score >= 2:
+    elif score == 3:
+
+        return "🟡觀察"
+
+
+    elif score >= 1:
 
         return "⚪等待"
 
@@ -232,26 +370,37 @@ def score_signal(score):
         return "🔴不買"
 
 
+
+
 # =========================
-# 分析股票
+# Analyze
 # =========================
 
 def analyze(symbol):
+
+
     try:
 
+
         today = datetime.now()
+
 
         end_date = today.strftime(
             "%Y-%m-%d"
         )
 
+
         start_date = (
 
-                today - timedelta(days=180)
+            today
+            -
+            timedelta(days=220)
 
         ).strftime(
             "%Y-%m-%d"
         )
+
+
 
         df = api.taiwan_stock_daily(
 
@@ -263,21 +412,40 @@ def analyze(symbol):
 
         )
 
-        if df.empty:
+
+        if df is None or df.empty:
+
             return None
+
+
 
         df = df.sort_values(
             "date"
         )
 
-        k, d = calc_kd(df)
 
-        ma20, ma60 = calc_ma(df)
 
-        # 避免資料不足
+        k,d = calc_kd(df)
 
-        if len(k.dropna()) < 2:
+
+        ma20,ma60 = calc_ma(df)
+
+
+
+        if (
+
+            len(k.dropna()) < 2
+
+            or
+
+            len(ma60.dropna()) < 1
+
+        ):
+
             return None
+
+
+
 
         k_now = float(
             k.iloc[-1]
@@ -287,6 +455,7 @@ def analyze(symbol):
             k.iloc[-2]
         )
 
+
         d_now = float(
             d.iloc[-1]
         )
@@ -295,39 +464,44 @@ def analyze(symbol):
             d.iloc[-2]
         )
 
-        # KD交叉
+
 
         cross = ""
 
+
         if (
 
-                k_old < d_old
+            k_old < d_old
 
-                and
+            and
 
-                k_now > d_now
+            k_now > d_now
 
         ):
 
-            cross = "黃金交叉"
+            cross="黃金交叉"
 
 
 
         elif (
 
-                k_old > d_old
+            k_old > d_old
 
-                and
+            and
 
-                k_now < d_now
+            k_now < d_now
 
         ):
 
-            cross = "死亡交叉"
+            cross="死亡交叉"
+
+
+
 
         kd = kd_state(
             k_now
         )
+
 
         trend = trend_state(
 
@@ -337,57 +511,86 @@ def analyze(symbol):
 
         )
 
-        # =====================
-        # 5分評分
-        # =====================
+
+
+        volume = volume_signal(df)
+
+
 
         score = 0
 
-        # KD
 
-        if kd == "極度超跌":
+
+        if kd=="超跌":
 
             score += 2
 
 
-        elif kd == "低檔":
+        elif kd=="低檔":
 
             score += 1
 
-        # MA
 
-        if trend == "多頭":
+
+        if trend=="多頭":
+
             score += 1
 
-        # 黃金交叉
 
-        if cross == "黃金交叉":
+
+        if cross=="黃金交叉":
+
             score += 1
+
+
+
+        if volume:
+
+            score += 1
+
+
+
 
         return {
 
-            "symbol":
-                symbol,
+
+            "symbol":symbol,
+
 
             "close":
                 round(
-                    float(df["close"].iloc[-1]),
+                    float(
+                        df["close"].iloc[-1]
+                    ),
                     2
                 ),
 
-            "kd":
-                kd,
 
-            "trend":
-                trend,
+            "kd":kd,
 
-            "cross":
-                cross,
 
-            "score":
-                score,
+            "trend":trend,
+
+
+            "cross":cross,
+
+
+            "volume":
+
+                "放大"
+
+                if volume
+
+                else
+
+                "正常",
+
+
+            "score":score,
+
 
             "signal":
+
                 score_signal(score)
 
         }
@@ -396,12 +599,16 @@ def analyze(symbol):
 
     except Exception as e:
 
+
         print(
             symbol,
             e
         )
 
+
         return None
+
+
 
 
 # =========================
@@ -409,45 +616,76 @@ def analyze(symbol):
 # =========================
 
 def main():
-    results = []
 
-    stocks = load_list()
+
+    results=[]
+
+
+    stocks=load_list()
+
+
 
     for symbol in stocks:
+
 
         print(
             "分析:",
             symbol
         )
 
-        r = analyze(
-            symbol
-        )
+
+        r=analyze(symbol)
+
+
 
         if r:
+
             results.append(r)
 
-    # 分數高到低
 
-    results.sort(
 
-        key=lambda x: x["score"],
+        time.sleep(0.5)
 
-        reverse=True
 
-    )
 
-    flex = create_flex(
-        results
-    )
 
-    send_line_flex(
-        flex
-    )
-    
+    if results:
+
+
+        results.sort(
+
+            key=lambda x:
+
+            x["score"],
+
+            reverse=True
+
+        )
+
+
+        flex=create_flex(
+            results
+        )
+
+
+        send_line_flex(
+            flex
+        )
+
+
+    else:
+
+        print(
+            "沒有有效資料"
+        )
+
+
     print(
         "DONE"
     )
 
-if __name__ == "__main__":
+
+
+if __name__=="__main__":
+
     main()
