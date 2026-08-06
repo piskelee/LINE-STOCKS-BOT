@@ -8,23 +8,26 @@ import os
 # LINE Flex Message
 # =========================
 def send_line_flex(flex):
+
     token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
     user_id = os.environ.get("LINE_USER_ID")
+
     if not token or not user_id:
         print("Missing LINE env")
         return
 
     url = "https://api.line.me/v2/bot/message/push"
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
+
     data = {
         "to": user_id,
-        "messages": [
-            flex
-        ]
+        "messages": [flex]
     }
+
     try:
         r = requests.post(
             url,
@@ -38,68 +41,151 @@ def send_line_flex(flex):
         print("LINE ERROR:", e)
 
 
+
 # =========================
 # KD
 # =========================
 def calc_kd(df, n=9):
+
     low = df["Low"].rolling(n).min()
     high = df["High"].rolling(n).max()
-    rsv = (df["Close"] - low) / (high - low) * 100
+
+    rsv = (df["Close"] - low) / (high-low) * 100
+
     k = rsv.ewm(com=2).mean()
     d = k.ewm(com=2).mean()
+
     return k, d
+
+
+
+# =========================
+# MA
+# =========================
+def calc_ma(df):
+
+    ma20 = df["Close"].rolling(20).mean()
+    ma60 = df["Close"].rolling(60).mean()
+
+    return ma20, ma60
+
 
 
 # =========================
 # 股票清單
 # =========================
 def load_list():
+
     try:
+
         with open(
-                "list.txt",
-                "r",
-                encoding="utf-8"
+            "list.txt",
+            "r",
+            encoding="utf-8"
         ) as f:
+
             return [
                 x.strip()
                 for x in f
                 if x.strip()
             ]
+
     except:
+
         return [
-            "0050.TW",
+            "0050.TW"
         ]
 
+
+
 # =========================
-# float安全轉換
+# float
 # =========================
 def f(v):
+
     return float(
         np.array(v)
         .reshape(-1)[-1]
     )
 
 
+
 # =========================
 # KD狀態
 # =========================
 def kd_state(k):
+
     if k < 20:
         return "極度超跌"
+
     elif k < 35:
         return "低檔"
+
     elif k < 60:
         return "中性"
+
     elif k < 80:
         return "高檔"
+
     else:
         return "過熱"
 
 
+
 # =========================
-# 分析股票
+# MA趨勢
+# =========================
+def trend_state(ma20, ma60):
+
+    if ma20 > ma60:
+        return "多頭"
+
+    else:
+        return "空頭"
+
+
+
+# =========================
+# 買進訊號
+# =========================
+def buy_signal(kd, trend, cross):
+
+    if (
+        kd in ["極度超跌", "低檔"]
+        and trend == "多頭"
+        and cross == "黃金交叉"
+    ):
+        return "🟢強力買進"
+
+
+    elif (
+        kd in ["極度超跌", "低檔"]
+        and trend == "多頭"
+    ):
+        return "🟡觀察買進"
+
+
+    elif kd in ["極度超跌", "低檔"]:
+
+        return "⚪等待"
+
+
+    elif kd == "過熱":
+
+        return "🔴避免追高"
+
+
+    else:
+
+        return "—"
+
+
+
+# =========================
+# 分析
 # =========================
 def analyze(symbol):
+
     try:
 
         df = yf.download(
@@ -109,68 +195,123 @@ def analyze(symbol):
             progress=False,
             auto_adjust=True
         )
+
+
         if df.empty:
             return None
-        k, d = calc_kd(df)
+
+
+
+        k,d = calc_kd(df)
+
+        ma20,ma60 = calc_ma(df)
+
+
+
         k = k.dropna().values
         d = d.dropna().values
 
-        if len(k) < 2:
+        ma20 = ma20.dropna().values
+        ma60 = ma60.dropna().values
+
+
+
+        if len(k)<2:
             return None
+
+
+
         k_now = f(k[-1])
         k_prev = f(k[-2])
+
         d_now = f(d[-1])
         d_prev = f(d[-2])
+
+
+
+        ma20_now = f(ma20[-1])
+        ma60_now = f(ma60[-1])
+
+
+
         close = f(
             df["Close"].iloc[-1]
         )
+
+
         date = df.index[-1].strftime(
             "%Y-%m-%d"
         )
-        # =================
-        # KD交叉
-        # =================
+
+
+
+        kd_txt = kd_state(k_now)
+
+        trend_txt = trend_state(
+            ma20_now,
+            ma60_now
+        )
+
+
 
         cross = ""
 
+
         if k_prev < d_prev and k_now > d_now:
-            cross = "🟢黃金交叉"
+
+            cross="黃金交叉"
+
 
         elif k_prev > d_prev and k_now < d_now:
-            cross = "🔴死亡交叉"
 
-        # =================
+            cross="死亡交叉"
+
+
+
+        signal = buy_signal(
+            kd_txt,
+            trend_txt,
+            cross
+        )
+
+
+
         # 評分
-        # =================
 
-        score = 0
+        score=0
 
-        if k_now < 20:
-            score += 5
 
-        elif k_now < 35:
+        if kd_txt=="極度超跌":
             score += 3
 
-        if cross == "🟢黃金交叉":
-            score += 5
+        elif kd_txt=="低檔":
+            score += 2
+
+
+        if trend_txt=="多頭":
+            score += 2
+
+
+        if cross=="黃金交叉":
+            score += 3
+
+
 
         return {
 
-            "symbol": symbol,
+            "symbol":symbol,
 
-            "date": date,
+            "date":date,
 
-            "close": close,
+            "close":close,
 
-            "k": k_now,
+            "kd":kd_txt,
 
-            "d": d_now,
+            "trend":trend_txt,
 
-            "state": kd_state(k_now),
+            "signal":signal,
 
-            "cross": cross,
-
-            "score": score
+            "score":score
 
         }
 
@@ -178,172 +319,187 @@ def analyze(symbol):
 
     except Exception as e:
 
-        print(
-            symbol,
-            e
-        )
+        print(symbol,e)
 
         return None
 
 
+
 # =========================
-# 建立 Flex 表格
+# 建立 Flex
 # =========================
 def create_flex(results):
-    rows = [{
 
-        "type": "box",
-        "layout": "horizontal",
+    rows=[]
 
-        "contents": [
+
+    rows.append({
+
+        "type":"box",
+        "layout":"horizontal",
+
+        "contents":[
 
             {
-                "type": "text",
-                "text": "股票",
-                "weight": "bold",
-                "flex": 3
+                "type":"text",
+                "text":"股票",
+                "weight":"bold",
+                "flex":3
             },
 
             {
-                "type": "text",
-                "text": "價格",
-                "weight": "bold",
-                "align": "end",
-                "flex": 2
+                "type":"text",
+                "text":"價格",
+                "weight":"bold",
+                "align":"end",
+                "flex":2
             },
 
             {
-                "type": "text",
-                "text": "K",
-                "weight": "bold",
-                "align": "end",
-                "flex": 2
+                "type":"text",
+                "text":"KD",
+                "weight":"bold",
+                "align":"center",
+                "flex":3
             },
 
             {
-                "type": "text",
-                "text": "D",
-                "weight": "bold",
-                "align": "end",
-                "flex": 2
+                "type":"text",
+                "text":"MA",
+                "weight":"bold",
+                "align":"center",
+                "flex":2
             },
 
             {
-                "type": "text",
-                "text": "分",
-                "weight": "bold",
-                "align": "end",
-                "flex": 2
+                "type":"text",
+                "text":"訊號",
+                "weight":"bold",
+                "align":"center",
+                "flex":3
             }
 
         ]
+    })
 
-    }, {
-        "type": "separator"
-    }]
 
-    # 表頭
+    rows.append({
+        "type":"separator"
+    })
 
-    # 資料列
+
 
     for r in results:
+
+
         rows.append({
 
-            "type": "box",
+            "type":"box",
 
-            "layout": "horizontal",
+            "layout":"horizontal",
 
-            "contents": [
+            "contents":[
+
 
                 {
-                    "type": "text",
-                    "text": r["symbol"],
-                    "size": "sm",
-                    "flex": 3
+                    "type":"text",
+                    "text":r["symbol"],
+                    "size":"sm",
+                    "flex":3
                 },
 
-                {
-                    "type": "text",
-                    "text": f'{r["close"]:.2f}',
-                    "size": "sm",
-                    "align": "end",
-                    "flex": 2
-                },
 
                 {
-                    "type": "text",
-                    "text": f'{r["k"]:.1f}',
-                    "size": "sm",
-                    "align": "end",
-                    "flex": 2
+                    "type":"text",
+                    "text":f'{r["close"]:.2f}',
+                    "size":"sm",
+                    "align":"end",
+                    "flex":2
                 },
 
-                {
-                    "type": "text",
-                    "text": f'{r["d"]:.1f}',
-                    "size": "sm",
-                    "align": "end",
-                    "flex": 2
-                },
 
                 {
-                    "type": "text",
-                    "text": str(r["score"]),
-                    "size": "sm",
-                    "weight": "bold",
-                    "align": "end",
-                    "flex": 2
+                    "type":"text",
+                    "text":r["kd"],
+                    "size":"sm",
+                    "align":"center",
+                    "flex":3
+                },
+
+
+                {
+                    "type":"text",
+                    "text":r["trend"],
+                    "size":"sm",
+                    "align":"center",
+                    "flex":2
+                },
+
+
+                {
+                    "type":"text",
+                    "text":r["signal"],
+                    "size":"sm",
+                    "align":"center",
+                    "flex":3
                 }
+
 
             ]
 
         })
 
-    flex = {
 
-        "type": "flex",
 
-        "altText": "KD策略掃描",
+    return {
 
-        "contents": {
+        "type":"flex",
 
-            "type": "bubble",
+        "altText":"KD策略掃描",
 
-            "size": "giga",
+        "contents":{
 
-            "body": {
+            "type":"bubble",
 
-                "type": "box",
+            "size":"giga",
 
-                "layout": "vertical",
+            "body":{
 
-                "spacing": "md",
+                "type":"box",
 
-                "contents": [
+                "layout":"vertical",
+
+                "spacing":"md",
+
+                "contents":[
+
 
                     {
-                        "type": "text",
-                        "text": "📊 KD策略掃描",
-                        "size": "xl",
-                        "weight": "bold"
+                        "type":"text",
+                        "text":"📊 KD + MA選股雷達",
+                        "weight":"bold",
+                        "size":"xl"
                     },
 
-                    {
-                        "type": "text",
-                        "text": "依評分排序",
-                        "size": "sm"
-                    },
 
                     {
-                        "type": "separator"
+                        "type":"text",
+                        "text":"KD低檔 + MA趨勢 + 買進訊號",
+                        "size":"sm"
                     },
 
+
                     {
-                        "type": "box",
-                        "layout": "vertical",
-                        "spacing": "sm",
-                        "contents": rows
+                        "type":"separator"
+                    },
+
+
+                    {
+                        "type":"box",
+                        "layout":"vertical",
+                        "contents":rows
                     }
+
 
                 ]
 
@@ -353,44 +509,47 @@ def create_flex(results):
 
     }
 
-    return flex
 
 
 # =========================
 # MAIN
 # =========================
 def main():
+
     symbols = load_list()
 
-    results = []
+    results=[]
+
 
     for s in symbols:
 
-        print(
-            "分析:",
-            s
-        )
+        print("分析:",s)
 
-        r = analyze(s)
+        r=analyze(s)
 
         if r:
+
             results.append(r)
 
-    # 排序
+
 
     results.sort(
-        key=lambda x: x["score"],
+        key=lambda x:x["score"],
         reverse=True
     )
 
-    flex = create_flex(results)
 
-    send_line_flex(
-        flex
-    )
+
+    flex=create_flex(results)
+
+
+    send_line_flex(flex)
+
 
     print("DONE")
 
 
-if __name__ == "__main__":
+
+if __name__=="__main__":
+
     main()
