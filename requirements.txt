@@ -2,3 +2,4 @@ pandas
 requests
 FinMind==1.8.1
 numpy
+tqdm
