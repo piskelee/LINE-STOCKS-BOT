@@ -1,7 +1,7 @@
-import yfinance as yf
-import numpy as np
+from FinMind.data import DataLoader
 import requests
 import os
+from datetime import datetime, timedelta
 
 from line_flex import create_flex
 
@@ -27,30 +27,48 @@ def send_line_flex(flex):
         return
 
 
+
     url = "https://api.line.me/v2/bot/message/push"
 
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
+
+        "Authorization":
+            f"Bearer {token}",
+
+        "Content-Type":
+            "application/json"
+
     }
 
 
     data = {
+
         "to": user_id,
-        "messages": [flex]
+
+        "messages": [
+            flex
+        ]
+
     }
 
 
     try:
 
         r = requests.post(
+
             url,
+
             headers=headers,
+
             json=data
+
         )
 
-        print(r.text)
+
+        print(
+            r.text
+        )
 
 
     except Exception as e:
@@ -60,33 +78,63 @@ def send_line_flex(flex):
 
 
 
+# =========================
+# FinMind
+# =========================
+
+api = DataLoader()
+
+
 
 # =========================
 # KD
 # =========================
 
-def calc_kd(df,n=9):
-
-    low = df["Low"].rolling(n).min()
-
-    high = df["High"].rolling(n).max()
+def calc_kd(df, n=9):
 
 
-    rsv = (
-        (df["Close"]-low)
-        /
-        (high-low)
-        *100
+    low = (
+        df["min"]
+        .rolling(n)
+        .min()
     )
 
 
-    k = rsv.ewm(com=2).mean()
+    high = (
+        df["max"]
+        .rolling(n)
+        .max()
+    )
 
-    d = k.ewm(com=2).mean()
+
+
+    rsv = (
+
+        (df["close"] - low)
+
+        /
+
+        (high-low)
+
+        *100
+
+    )
+
+
+
+    k = rsv.ewm(
+        com=2
+    ).mean()
+
+
+
+    d = k.ewm(
+        com=2
+    ).mean()
+
 
 
     return k,d
-
 
 
 
@@ -97,13 +145,21 @@ def calc_kd(df,n=9):
 
 def calc_ma(df):
 
-    ma20 = df["Close"].rolling(20).mean()
+    ma20 = (
+        df["close"]
+        .rolling(20)
+        .mean()
+    )
 
-    ma60 = df["Close"].rolling(60).mean()
+
+    ma60 = (
+        df["close"]
+        .rolling(60)
+        .mean()
+    )
 
 
     return ma20,ma60
-
 
 
 
@@ -121,32 +177,32 @@ def load_list():
             encoding="utf-8"
         ) as f:
 
+
             return [
+
                 x.strip()
+
                 for x in f
+
                 if x.strip()
+
             ]
+
 
     except:
 
+
         return [
-            "0050.TW"
+
+            "0050",
+
+            "0056",
+
+            "2330",
+
+            "2317"
+
         ]
-
-
-
-
-
-# =========================
-# float
-# =========================
-
-def f(v):
-
-    return float(
-        np.array(v)
-        .reshape(-1)[-1]
-    )
 
 
 
@@ -157,6 +213,7 @@ def f(v):
 # =========================
 
 def kd_state(k):
+
 
     if k < 20:
 
@@ -187,28 +244,29 @@ def kd_state(k):
 
 
 # =========================
-# MA趨勢
+# 趨勢
 # =========================
 
-def trend_state(ma20,ma60):
+def trend_state(ma20, ma60):
+
 
     if ma20 > ma60:
 
         return "多頭"
 
-    else:
 
-        return "空頭"
+    return "空頭"
 
 
 
 
 
 # =========================
-# 5分制訊號
+# 5分制
 # =========================
 
-def buy_signal(score):
+def score_signal(score):
+
 
     if score == 5:
 
@@ -220,7 +278,7 @@ def buy_signal(score):
         return "🟡買進觀察"
 
 
-    elif score >= 2:
+    elif score >=2:
 
         return "⚪等待"
 
@@ -234,27 +292,43 @@ def buy_signal(score):
 
 
 # =========================
-# 股票分析
+# 分析股票
 # =========================
 
 def analyze(symbol):
 
+
     try:
 
 
-        df = yf.download(
+        today = datetime.now()
 
-            symbol,
 
-            period="6mo",
+        end_date = today.strftime(
+            "%Y-%m-%d"
+        )
 
-            interval="1d",
 
-            progress=False,
+        start_date = (
 
-            auto_adjust=True
+            today - timedelta(days=365)
+
+        ).strftime(
+            "%Y-%m-%d"
+        )
+
+
+
+        df = api.taiwan_stock_daily(
+
+            stock_id=symbol,
+
+            start_date=start_date,
+
+            end_date=end_date
 
         )
+
 
 
         if df.empty:
@@ -263,84 +337,103 @@ def analyze(symbol):
 
 
 
+        df = df.sort_values(
+            "date"
+        )
+
+
 
         k,d = calc_kd(df)
+
+
 
         ma20,ma60 = calc_ma(df)
 
 
 
+        # 避免資料不足
 
-        k = k.dropna().values
-
-        d = d.dropna().values
-
-
-        ma20 = ma20.dropna().values
-
-        ma60 = ma60.dropna().values
-
-
-
-        if len(k)<2:
+        if len(k.dropna()) < 2:
 
             return None
 
 
 
+        k_now = float(
+            k.iloc[-1]
+        )
 
-        k_now = f(k[-1])
+        k_old = float(
+            k.iloc[-2]
+        )
 
-        k_old = f(k[-2])
 
+        d_now = float(
+            d.iloc[-1]
+        )
 
-        d_now = f(d[-1])
-
-        d_old = f(d[-2])
-
+        d_old = float(
+            d.iloc[-2]
+        )
 
 
 
 
         # KD交叉
 
-        cross = ""
+        cross=""
 
 
-        if k_old < d_old and k_now > d_now:
+        if (
 
-            cross = "黃金交叉"
+            k_old < d_old
+
+            and
+
+            k_now > d_now
+
+        ):
+
+            cross="黃金交叉"
 
 
-        elif k_old > d_old and k_now < d_now:
 
-            cross = "死亡交叉"
+        elif (
+
+            k_old > d_old
+
+            and
+
+            k_now < d_now
+
+        ):
+
+            cross="死亡交叉"
 
 
 
 
-
-        kd = kd_state(k_now)
+        kd = kd_state(
+            k_now
+        )
 
 
 
         trend = trend_state(
 
-            f(ma20[-1]),
+            float(ma20.iloc[-1]),
 
-            f(ma60[-1])
+            float(ma60.iloc[-1])
 
         )
 
 
 
-
-
-        # =========================
+        # =====================
         # 5分評分
-        # =========================
+        # =====================
 
-        score = 0
+        score=0
 
 
 
@@ -358,8 +451,7 @@ def analyze(symbol):
 
 
 
-
-        # MA趨勢
+        # MA
 
         if trend=="多頭":
 
@@ -368,8 +460,7 @@ def analyze(symbol):
 
 
 
-
-        # KD黃金交叉
+        # 黃金交叉
 
         if cross=="黃金交叉":
 
@@ -378,44 +469,54 @@ def analyze(symbol):
 
 
 
-
         return {
 
-            "symbol":symbol,
+
+            "symbol":
+                symbol,
 
 
-            "close":f(
-                df["Close"].iloc[-1]
-            ),
+            "close":
+                round(
+                    float(df["close"].iloc[-1]),
+                    2
+                ),
 
 
-            "kd":kd,
+            "kd":
+                kd,
 
 
-            "trend":trend,
+            "trend":
+                trend,
 
 
-            "signal":buy_signal(
-                score
-            ),
+            "cross":
+                cross,
 
 
-            "score":score
+            "score":
+                score,
+
+
+            "signal":
+                score_signal(score)
 
         }
 
 
 
-
-
     except Exception as e:
+
 
         print(
             symbol,
             e
         )
 
+
         return None
+
 
 
 
@@ -432,15 +533,22 @@ def main():
 
 
 
-    for s in load_list():
+    stocks = load_list()
+
+
+
+    for symbol in stocks:
+
 
         print(
             "分析:",
-            s
+            symbol
         )
 
 
-        r=analyze(s)
+        r = analyze(
+            symbol
+        )
 
 
         if r:
@@ -449,9 +557,7 @@ def main():
 
 
 
-
-
-    # 分數排序
+    # 分數高到低
 
     results.sort(
 
@@ -463,15 +569,19 @@ def main():
 
 
 
+    flex = create_flex(
+        results
+    )
 
 
-    flex=create_flex(results)
+    send_line_flex(
+        flex
+    )
 
 
-    send_line_flex(flex)
-
-
-    print("DONE")
+    print(
+        "DONE"
+    )
 
 
 
