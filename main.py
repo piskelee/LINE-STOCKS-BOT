@@ -159,29 +159,45 @@ def trend_state(a,b):
 
 
 
-def buy_signal(kd,trend,cross):
+def buy_signal(kd, trend, cross):
 
-    if kd in ["極度超跌","低檔"] and trend=="多頭" and cross=="黃金交叉":
-
+    if (
+        kd in ["極度超跌", "低檔"]
+        and trend == "多頭"
+        and cross == "黃金交叉"
+    ):
         return "🟢強力買進"
 
 
-    elif kd in ["極度超跌","低檔"] and trend=="多頭":
-
+    elif (
+        kd in ["極度超跌", "低檔"]
+        and trend == "多頭"
+    ):
         return "🟡觀察買進"
 
 
-    elif kd in ["極度超跌","低檔"]:
-
+    elif kd in ["極度超跌", "低檔"]:
         return "⚪等待"
 
 
-    elif kd=="過熱":
+    elif cross == "黃金交叉":
+        return "🟢交叉買進"
 
+
+    elif cross == "死亡交叉":
+        return "🔴死亡交叉"
+
+
+    elif kd == "過熱":
         return "🔴避免追高"
 
 
-    return "—"
+    elif trend == "多頭":
+        return "📈多頭續抱"
+
+
+    else:
+        return "📉空頭觀察"
 
 
 
