@@ -194,13 +194,7 @@ def load_list():
 
         return [
 
-            "0050",
-
-            "0056",
-
-            "2330",
-
-            "2317"
+            "0050"
 
         ]
 
@@ -311,7 +305,7 @@ def analyze(symbol):
 
         start_date = (
 
-            today - timedelta(days=365)
+            today - timedelta(days=180)
 
         ).strftime(
             "%Y-%m-%d"
