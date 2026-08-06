@@ -1,21 +1,18 @@
-# line_flex.py
-
-
 def create_flex(results):
 
-    rows = []
+
+    rows=[]
 
 
-    # =========================
-    # 表頭
-    # =========================
 
     rows.append({
 
         "type":"box",
+
         "layout":"horizontal",
 
         "contents":[
+
 
             {
                 "type":"text",
@@ -24,75 +21,86 @@ def create_flex(results):
                 "flex":3
             },
 
+
             {
                 "type":"text",
                 "text":"價格",
                 "weight":"bold",
-                "align":"end",
-                "flex":2
+                "flex":2,
+                "align":"end"
             },
+
 
             {
                 "type":"text",
                 "text":"KD",
                 "weight":"bold",
-                "align":"center",
-                "flex":3
+                "flex":2,
+                "align":"center"
             },
+
 
             {
                 "type":"text",
-                "text":"MA",
+                "text":"趨勢",
                 "weight":"bold",
-                "align":"center",
-                "flex":2
+                "flex":2,
+                "align":"center"
             },
+
 
             {
                 "type":"text",
                 "text":"訊號",
                 "weight":"bold",
-                "align":"center",
-                "flex":3
+                "flex":3,
+                "align":"center"
             },
+
 
             {
                 "type":"text",
                 "text":"分",
                 "weight":"bold",
-                "align":"center",
-                "flex":1
+                "flex":2,
+                "align":"center"
             }
 
         ]
+
     })
+
 
 
     rows.append({
+
         "type":"separator"
+
     })
 
 
 
-    # =========================
-    # 股票資料
-    # =========================
 
     for r in results:
 
 
+
         rows.append({
+
 
             "type":"box",
 
+
             "layout":"horizontal",
+
 
             "contents":[
 
 
+
                 {
                     "type":"text",
-                    "text":r["symbol"].replace(".TW",""),
+                    "text":r["symbol"],
                     "size":"sm",
                     "flex":3
                 },
@@ -100,10 +108,10 @@ def create_flex(results):
 
                 {
                     "type":"text",
-                    "text":f'{r["close"]:.2f}',
+                    "text":str(r["close"]),
                     "size":"sm",
-                    "align":"end",
-                    "flex":2
+                    "flex":2,
+                    "align":"end"
                 },
 
 
@@ -111,8 +119,8 @@ def create_flex(results):
                     "type":"text",
                     "text":r["kd"],
                     "size":"sm",
-                    "align":"center",
-                    "flex":3
+                    "flex":2,
+                    "align":"center"
                 },
 
 
@@ -120,8 +128,8 @@ def create_flex(results):
                     "type":"text",
                     "text":r["trend"],
                     "size":"sm",
-                    "align":"center",
-                    "flex":2
+                    "flex":2,
+                    "align":"center"
                 },
 
 
@@ -129,18 +137,18 @@ def create_flex(results):
                     "type":"text",
                     "text":r["signal"],
                     "size":"sm",
-                    "align":"center",
-                    "flex":3
+                    "flex":3,
+                    "align":"center"
                 },
 
 
                 {
                     "type":"text",
-                    "text":str(r["score"]),
+                    "text":f'{r["score"]}/5',
                     "size":"sm",
                     "weight":"bold",
-                    "align":"center",
-                    "flex":1
+                    "flex":2,
+                    "align":"center"
                 }
 
             ]
@@ -149,23 +157,27 @@ def create_flex(results):
 
 
 
-    # =========================
-    # Flex Bubble
-    # =========================
+
 
     return {
 
+
         "type":"flex",
 
-        "altText":"KD策略掃描",
+        "altText":
+            "KD選股雷達",
+
 
         "contents":{
+
 
             "type":"bubble",
 
             "size":"giga",
 
+
             "body":{
+
 
                 "type":"box",
 
@@ -173,12 +185,15 @@ def create_flex(results):
 
                 "spacing":"md",
 
+
                 "contents":[
+
 
 
                     {
                         "type":"text",
-                        "text":"📊 KD + MA選股雷達",
+                        "text":
+                        "📊 KD + MA + Volume 選股雷達",
                         "weight":"bold",
                         "size":"xl"
                     },
@@ -186,7 +201,8 @@ def create_flex(results):
 
                     {
                         "type":"text",
-                        "text":"KD低檔 + MA趨勢 + 買進訊號",
+                        "text":
+                        "每日收盤技術分析",
                         "size":"sm"
                     },
 
@@ -201,6 +217,7 @@ def create_flex(results):
                         "layout":"vertical",
                         "contents":rows
                     }
+
 
                 ]
 
