@@ -6,13 +6,11 @@ from datetime import datetime, timedelta
 from line_flex import create_flex
 
 
-
 # =========================
 # LINE 推播
 # =========================
 
 def send_line_flex(flex):
-
     token = os.environ.get(
         "LINE_CHANNEL_ACCESS_TOKEN"
     )
@@ -21,15 +19,11 @@ def send_line_flex(flex):
         "LINE_USER_ID"
     )
 
-
     if not token or not user_id:
         print("Missing LINE env")
         return
 
-
-
     url = "https://api.line.me/v2/bot/message/push"
-
 
     headers = {
 
@@ -41,7 +35,6 @@ def send_line_flex(flex):
 
     }
 
-
     data = {
 
         "to": user_id,
@@ -51,7 +44,6 @@ def send_line_flex(flex):
         ]
 
     }
-
 
     try:
 
@@ -65,7 +57,6 @@ def send_line_flex(flex):
 
         )
 
-
         print(
             r.text
         )
@@ -76,8 +67,6 @@ def send_line_flex(flex):
         print(e)
 
 
-
-
 # =========================
 # FinMind
 # =========================
@@ -85,20 +74,16 @@ def send_line_flex(flex):
 api = DataLoader()
 
 
-
 # =========================
 # KD
 # =========================
 
 def calc_kd(df, n=9):
-
-
     low = (
         df["min"]
         .rolling(n)
         .min()
     )
-
 
     high = (
         df["max"]
@@ -106,37 +91,27 @@ def calc_kd(df, n=9):
         .max()
     )
 
-
-
     rsv = (
 
-        (df["close"] - low)
+            (df["close"] - low)
 
-        /
+            /
 
-        (high-low)
+            (high - low)
 
-        *100
+            * 100
 
     )
-
-
 
     k = rsv.ewm(
         com=2
     ).mean()
 
-
-
     d = k.ewm(
         com=2
     ).mean()
 
-
-
-    return k,d
-
-
+    return k, d
 
 
 # =========================
@@ -144,13 +119,11 @@ def calc_kd(df, n=9):
 # =========================
 
 def calc_ma(df):
-
     ma20 = (
         df["close"]
         .rolling(20)
         .mean()
     )
-
 
     ma60 = (
         df["close"]
@@ -158,10 +131,7 @@ def calc_ma(df):
         .mean()
     )
 
-
-    return ma20,ma60
-
-
+    return ma20, ma60
 
 
 # =========================
@@ -169,14 +139,12 @@ def calc_ma(df):
 # =========================
 
 def load_list():
-
     try:
 
         with open(
-            "list.txt",
-            encoding="utf-8"
+                "list.txt",
+                encoding="utf-8"
         ) as f:
-
 
             return [
 
@@ -191,7 +159,6 @@ def load_list():
 
     except:
 
-
         return [
 
             "0050"
@@ -199,16 +166,11 @@ def load_list():
         ]
 
 
-
-
-
 # =========================
 # KD狀態
 # =========================
 
 def kd_state(k):
-
-
     if k < 20:
 
         return "極度超跌"
@@ -234,25 +196,15 @@ def kd_state(k):
         return "過熱"
 
 
-
-
-
 # =========================
 # 趨勢
 # =========================
 
 def trend_state(ma20, ma60):
-
-
     if ma20 > ma60:
-
         return "多頭"
 
-
     return "空頭"
-
-
-
 
 
 # =========================
@@ -260,8 +212,6 @@ def trend_state(ma20, ma60):
 # =========================
 
 def score_signal(score):
-
-
     if score == 5:
 
         return "🟢強力買進"
@@ -272,7 +222,7 @@ def score_signal(score):
         return "🟡買進觀察"
 
 
-    elif score >=2:
+    elif score >= 2:
 
         return "⚪等待"
 
@@ -282,36 +232,26 @@ def score_signal(score):
         return "🔴不買"
 
 
-
-
-
 # =========================
 # 分析股票
 # =========================
 
 def analyze(symbol):
-
-
     try:
 
-
         today = datetime.now()
-
 
         end_date = today.strftime(
             "%Y-%m-%d"
         )
 
-
         start_date = (
 
-            today - timedelta(days=180)
+                today - timedelta(days=180)
 
         ).strftime(
             "%Y-%m-%d"
         )
-
-
 
         df = api.taiwan_stock_daily(
 
@@ -323,35 +263,21 @@ def analyze(symbol):
 
         )
 
-
-
         if df.empty:
-
             return None
-
-
 
         df = df.sort_values(
             "date"
         )
 
+        k, d = calc_kd(df)
 
-
-        k,d = calc_kd(df)
-
-
-
-        ma20,ma60 = calc_ma(df)
-
-
+        ma20, ma60 = calc_ma(df)
 
         # 避免資料不足
 
         if len(k.dropna()) < 2:
-
             return None
-
-
 
         k_now = float(
             k.iloc[-1]
@@ -361,7 +287,6 @@ def analyze(symbol):
             k.iloc[-2]
         )
 
-
         d_now = float(
             d.iloc[-1]
         )
@@ -370,48 +295,39 @@ def analyze(symbol):
             d.iloc[-2]
         )
 
-
-
-
         # KD交叉
 
-        cross=""
-
+        cross = ""
 
         if (
 
-            k_old < d_old
+                k_old < d_old
 
-            and
+                and
 
-            k_now > d_now
+                k_now > d_now
 
         ):
 
-            cross="黃金交叉"
+            cross = "黃金交叉"
 
 
 
         elif (
 
-            k_old > d_old
+                k_old > d_old
 
-            and
+                and
 
-            k_now < d_now
+                k_now < d_now
 
         ):
 
-            cross="死亡交叉"
-
-
-
+            cross = "死亡交叉"
 
         kd = kd_state(
             k_now
         )
-
-
 
         trend = trend_state(
 
@@ -421,54 +337,37 @@ def analyze(symbol):
 
         )
 
-
-
         # =====================
         # 5分評分
         # =====================
 
-        score=0
-
-
+        score = 0
 
         # KD
 
-        if kd=="極度超跌":
+        if kd == "極度超跌":
 
             score += 2
 
 
-        elif kd=="低檔":
+        elif kd == "低檔":
 
             score += 1
-
-
-
 
         # MA
 
-        if trend=="多頭":
-
+        if trend == "多頭":
             score += 1
-
-
-
 
         # 黃金交叉
 
-        if cross=="黃金交叉":
-
+        if cross == "黃金交叉":
             score += 1
-
-
-
 
         return {
 
-
             "symbol":
                 symbol,
-
 
             "close":
                 round(
@@ -476,22 +375,17 @@ def analyze(symbol):
                     2
                 ),
 
-
             "kd":
                 kd,
-
 
             "trend":
                 trend,
 
-
             "cross":
                 cross,
 
-
             "score":
                 score,
-
 
             "signal":
                 score_signal(score)
@@ -502,18 +396,12 @@ def analyze(symbol):
 
     except Exception as e:
 
-
         print(
             symbol,
             e
         )
 
-
         return None
-
-
-
-
 
 
 # =========================
@@ -521,66 +409,45 @@ def analyze(symbol):
 # =========================
 
 def main():
-
-
-    results=[]
-
-
+    results = []
 
     stocks = load_list()
 
-
-
     for symbol in stocks:
-
 
         print(
             "分析:",
             symbol
         )
 
-
         r = analyze(
             symbol
         )
 
-
         if r:
-
             results.append(r)
-
-
 
     # 分數高到低
 
     results.sort(
 
-        key=lambda x:x["score"],
+        key=lambda x: x["score"],
 
         reverse=True
 
     )
 
-
-
     flex = create_flex(
         results
     )
 
-
     send_line_flex(
         flex
     )
-
-
+    
     print(
         "DONE"
     )
 
-
-
-
-
-if __name__=="__main__":
-
+if __name__ == "__main__":
     main()
