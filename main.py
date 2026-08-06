@@ -173,7 +173,7 @@ def analyze(symbol):
     try:
         today = datetime.now()
         end_date = today.strftime("%Y-%m-%d")
-        start_date = (today - timedelta(days=220)).strftime("%Y-%m-%d")
+        start_date = (today - timedelta(days=365)).strftime("%Y-%m-%d")
 
         df = api.taiwan_stock_daily(
             stock_id=symbol,
