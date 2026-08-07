@@ -1,7 +1,6 @@
 import os
 import time
 from datetime import datetime, timedelta
-
 import pandas as pd
 import requests
 from FinMind.data import DataLoader
@@ -333,7 +332,7 @@ def main():
             results.append(r)
 
         # 避免 API 太快
-        time.sleep(0.5)
+        time.sleep(1)
 
     if results:
         # 分數高到低
