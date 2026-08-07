@@ -171,13 +171,10 @@ def create_flex(results):
                         "text":
                         "10分制每日收盤分析",
                         "size":"sm"
-
                     },
                     {
                         "type":"separator"
                     },
-
-
                     {
                         "type":"box",
                         "layout":"vertical",
