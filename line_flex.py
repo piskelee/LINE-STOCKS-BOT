@@ -1,27 +1,18 @@
 def create_flex(results):
-
     rows = []
-
-
     # =========================
     # 表頭
     # =========================
-
     rows.append({
-
         "type": "box",
-
         "layout": "horizontal",
-
         "contents": [
-
             {
                 "type": "text",
                 "text": "股票",
                 "weight": "bold",
                 "flex": 3
             },
-
             {
                 "type": "text",
                 "text": "價格",
@@ -29,7 +20,6 @@ def create_flex(results):
                 "flex": 2,
                 "align": "end"
             },
-
             {
                 "type": "text",
                 "text": "分數",
@@ -37,7 +27,6 @@ def create_flex(results):
                 "flex": 2,
                 "align": "center"
             },
-
             {
                 "type": "text",
                 "text": "訊號",
@@ -45,36 +34,22 @@ def create_flex(results):
                 "flex": 3,
                 "align": "center"
             }
-
         ]
-
     })
-
-
     rows.append({
-
         "type": "separator"
-
     })
 
 
     # =========================
     # 股票資料
     # =========================
-
     for r in results:
-
-
         # 第一行
-
         rows.append({
-
             "type": "box",
-
             "layout": "horizontal",
-
             "contents": [
-
                 {
                     "type": "text",
                     "text": r["symbol"],
@@ -90,8 +65,6 @@ def create_flex(results):
                     "flex": 2,
                     "align": "end"
                 },
-
-
                 {
                     "type": "text",
                     "text": f'{r["score"]}/10',
@@ -100,8 +73,6 @@ def create_flex(results):
                     "flex": 2,
                     "align": "center"
                 },
-
-
                 {
                     "type": "text",
                     "text": r["signal"],
@@ -109,24 +80,16 @@ def create_flex(results):
                     "flex": 3,
                     "align": "center"
                 }
-
             ]
-
         })
 
 
 
         # 第二行 技術資訊
-
         rows.append({
-
             "type": "box",
-
             "layout": "horizontal",
-
             "contents": [
-
-
                 {
                     "type": "text",
                     "text":
@@ -134,8 +97,6 @@ def create_flex(results):
                     "size":"xs",
                     "flex":2
                 },
-
-
                 {
                     "type":"text",
                     "text":
@@ -143,8 +104,6 @@ def create_flex(results):
                     "size":"xs",
                     "flex":3
                 },
-
-
                 {
                     "type":"text",
                     "text":
@@ -152,8 +111,6 @@ def create_flex(results):
                     "size":"xs",
                     "flex":3
                 },
-
-
                 {
                     "type":"text",
                     "text":
@@ -161,23 +118,12 @@ def create_flex(results):
                     "size":"xs",
                     "flex":3
                 }
-
-
             ]
-
         })
-
-
-
         rows.append({
-
             "type":"box",
-
             "layout":"horizontal",
-
             "contents":[
-
-
                 {
                     "type":"text",
                     "text":
@@ -185,8 +131,6 @@ def create_flex(results):
                     "size":"xs",
                     "flex":3
                 },
-
-
                 {
                     "type":"text",
                     "text":
@@ -194,104 +138,52 @@ def create_flex(results):
                     "size":"xs",
                     "flex":3
                 }
-
-
             ]
-
         })
-
-
-
         rows.append({
-
             "type":"separator"
-
         })
-
-
-
+        
     # =========================
     # Flex
     # =========================
-
     return {
-
-
         "type":"flex",
-
         "altText":
         "KD選股雷達10分制",
-
-
         "contents":{
-
-
             "type":"bubble",
-
             "size":"giga",
-
-
             "body":{
-
-
                 "type":"box",
-
                 "layout":"vertical",
-
                 "spacing":"md",
-
-
                 "contents":[
-
-
                     {
-
                         "type":"text",
-
                         "text":
                         "📊 KD + MA + Volume 選股雷達",
-
                         "weight":"bold",
-
                         "size":"xl"
-
                     },
-
-
                     {
-
                         "type":"text",
-
                         "text":
                         "10分制每日收盤分析",
-
                         "size":"sm"
 
                     },
-
-
                     {
-
                         "type":"separator"
-
                     },
 
 
                     {
-
                         "type":"box",
-
                         "layout":"vertical",
-
                         "contents":rows
-
                     }
-
-
                 ]
-
             }
-
         }
-
     }
