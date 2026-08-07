@@ -125,7 +125,7 @@ def load_list():
 # =========================
 
 def kd_state(k):
-    if k < 20:
+    if k < 25:
         return "超跌"
     elif k < 35:
         return "低檔"
@@ -262,7 +262,7 @@ def analyze(symbol):
         # KD
         # -------------------------
         if kd == "超跌":
-            score += 2
+            score += 3
         elif kd == "低檔":
             score += 1
 
