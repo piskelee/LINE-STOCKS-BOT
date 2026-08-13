@@ -112,12 +112,14 @@ def volume_signal(df):
 # =========================
 
 def load_list():
-    try:
-        with open("list.txt", encoding="utf-8") as f:
-            return [x.strip() for x in f if x.strip()]
-    except:
-        return ["0050"]
-
+        return ["0050",
+                "0056",
+                "00713",
+                "00881",
+                "00878",
+                "00919",
+                "2330"
+               ]
 
 # =========================
 # KD 狀態
