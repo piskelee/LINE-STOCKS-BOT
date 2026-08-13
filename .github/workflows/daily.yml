@@ -2,8 +2,10 @@ name: KD Line Bot Test
 
 on:
   schedule:
-    # 台灣時間 (UTC+8) 上午 05:00 執行，對應 UTC 時間為前一天的 21:00
-    - cron: '0 21 * * *'
+    # 台灣時間週一～週五 05:00 執行
+    # UTC 時間為前一天 21:00
+    # UTC 週一～週五對應台灣時間週二～週六
+    - cron: '0 21 * * 1-5'
   workflow_dispatch:
 
 jobs:
